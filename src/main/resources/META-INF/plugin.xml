@@ -12,4 +12,13 @@
         <toolWindow factoryClass="com.github.gschrader.openinrunconfigideaplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
         <postStartupActivity implementation="com.github.gschrader.openinrunconfigideaplugin.startup.MyProjectActivity" />
     </extensions>
+    
+    <actions>
+        <action id="RunWithFilePathAction" 
+                class="com.github.gschrader.openinrunconfigideaplugin.actions.RunWithFilePathAction"
+                text="Run Configuration with File Path"
+                description="Run a configuration with the selected file path as a program argument">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="OpenInTerminal"/>
+        </action>
+    </actions>
 </idea-plugin>
