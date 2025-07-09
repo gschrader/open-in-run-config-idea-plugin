@@ -119,12 +119,18 @@ class RunWithFilePathAction : AnAction() {
                     return
                 }
                 
+                // Set the configuration as temporary
+                tempSettings.isTemporary = true
+                
+                // Add the temporary configuration to the run manager so it persists
+                runManager.addConfiguration(tempSettings)
+                
+                // Set it as the selected configuration
+                runManager.selectedConfiguration = tempSettings
+                
                 // Execute the temporary configuration
                 val executor = DefaultRunExecutor.getRunExecutorInstance()
                 ProgramRunnerUtil.executeConfiguration(tempSettings, executor)
-                
-                // The temporary configuration will be discarded after execution
-                // No need to restore anything since we didn't modify the original
                 
             } catch (e: Exception) {
                 Messages.showErrorDialog(
