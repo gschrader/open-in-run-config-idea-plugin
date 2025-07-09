@@ -16,6 +16,7 @@ import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.vfs.VirtualFile
 import com.github.gschrader.openinrunconfigideaplugin.MyBundle
 import javax.swing.Icon
+import org.jdom.Element
 
 class RunWithFilePathAction : AnAction() {
 
@@ -83,44 +84,148 @@ class RunWithFilePathAction : AnAction() {
         
         private fun runConfigurationWithFilePath(configuration: RunConfiguration, file: VirtualFile, project: Project) {
             val runManager = RunManager.getInstance(project)
-            val settings = runManager.findConfigurationByName(configuration.name)
             
-            if (settings != null) {
-                try {
-                    // Store original parameters
-                    val originalParams = getCurrentProgramParameters(configuration)
-                    
-                    // Add the file path as a program argument
-                    val filePath = file.path
-                    val success = addProgramArgument(configuration, filePath)
-                    
-                    if (!success) {
-                        Messages.showWarningDialog(
-                            project,
-                            MyBundle.message("configurationNotSupported", configuration.name),
-                            MyBundle.message("runWithFilePath.default")
-                        )
-                        return
-                    }
-                    
-                    // Execute the configuration
-                    val executor = DefaultRunExecutor.getRunExecutorInstance()
-                    ProgramRunnerUtil.executeConfiguration(settings, executor)
-                    
-                    // Restore original parameters
-                    restoreProgramParameters(configuration, originalParams)
-                    
-                } catch (e: Exception) {
+            try {
+                // Create a temporary copy of the configuration
+                val factory = configuration.factory ?: run {
                     Messages.showErrorDialog(
                         project,
-                        MyBundle.message("executionError", e.message ?: "Unknown error"),
+                        MyBundle.message("configurationNotSupported", configuration.name),
                         MyBundle.message("runWithFilePath.default")
                     )
+                    return
+                }
+                
+                val tempSettings = runManager.createConfiguration(
+                    "${configuration.name} (with ${file.name})",
+                    factory
+                )
+                
+                val tempConfiguration = tempSettings.configuration
+                
+                // Copy settings from original configuration to temporary one
+                copyConfigurationSettings(configuration, tempConfiguration)
+                
+                // Add the file path as a program argument to the temporary configuration
+                val filePath = file.path
+                val success = addProgramArgument(tempConfiguration, filePath)
+                
+                if (!success) {
+                    Messages.showWarningDialog(
+                        project,
+                        MyBundle.message("configurationNotSupported", configuration.name),
+                        MyBundle.message("runWithFilePath.default")
+                    )
+                    return
+                }
+                
+                // Execute the temporary configuration
+                val executor = DefaultRunExecutor.getRunExecutorInstance()
+                ProgramRunnerUtil.executeConfiguration(tempSettings, executor)
+                
+                // The temporary configuration will be discarded after execution
+                // No need to restore anything since we didn't modify the original
+                
+            } catch (e: Exception) {
+                Messages.showErrorDialog(
+                    project,
+                    MyBundle.message("executionError", e.message ?: "Unknown error"),
+                    MyBundle.message("runWithFilePath.default")
+                )
+            }
+        }
+        
+        private fun copyConfigurationSettings(source: RunConfiguration, target: RunConfiguration) {
+            try {
+                // Use the configuration's built-in serialization to copy all settings
+                val element = Element("configuration")
+                source.writeExternal(element)
+                target.readExternal(element)
+                
+                // The above copies ALL settings including main class, module, working directory, etc.
+                // This is the most reliable way to ensure complete configuration transfer
+                
+            } catch (e: Exception) {
+                // If serialization fails, fall back to manual copying
+                try {
+                    copySettingsManually(source, target)
+                } catch (e2: Exception) {
+                    // If all copying fails, the target will use default settings
+                    // This is acceptable for our use case
                 }
             }
         }
         
-        private fun getCurrentProgramParameters(configuration: RunConfiguration): String? {
+        private fun copySettingsManually(source: RunConfiguration, target: RunConfiguration) {
+            // Copy program parameters first
+            try {
+                val sourceParams = getProgramParameters(source)
+                setProgramParameters(target, sourceParams ?: "")
+            } catch (e: Exception) {
+                // Program parameters not available or copy failed, continue
+            }
+            
+            // Try various common configuration methods
+            val methodPairs = listOf(
+                "getWorkingDirectory" to "setWorkingDirectory",
+                "getMainClass" to "setMainClass", 
+                "getRunClass" to "setRunClass",
+                "getMainClassName" to "setMainClassName",
+                "getClassName" to "setClassName"
+            )
+            
+            for ((getMethod, setMethod) in methodPairs) {
+                try {
+                    val getValue = source.javaClass.getMethod(getMethod)
+                    val value = getValue.invoke(source) as String?
+                    if (value != null && value.isNotEmpty()) {
+                        val setValue = target.javaClass.getMethod(setMethod, String::class.java)
+                        setValue.invoke(target, value)
+                    }
+                } catch (e: Exception) {
+                    // Method not available or copy failed, continue
+                }
+            }
+            
+            // Try to copy environment variables
+            try {
+                val envVarsMethod = source.javaClass.getMethod("getEnvs")
+                val envVars = envVarsMethod.invoke(source) as Map<String, String>?
+                if (envVars != null) {
+                    val setEnvVarsMethod = target.javaClass.getMethod("setEnvs", Map::class.java)
+                    setEnvVarsMethod.invoke(target, envVars)
+                }
+            } catch (e: Exception) {
+                // Environment variables not available or copy failed, continue
+            }
+            
+            // Try to copy module using various possible methods
+            val moduleGetMethods = listOf("getModule", "getConfigurationModule")
+            val moduleSetMethods = listOf("setModule", "setConfigurationModule")
+            
+            for (getMethod in moduleGetMethods) {
+                try {
+                    val getValue = source.javaClass.getMethod(getMethod)
+                    val module = getValue.invoke(source)
+                    if (module != null) {
+                        for (setMethod in moduleSetMethods) {
+                            try {
+                                val setValue = target.javaClass.getMethod(setMethod, module.javaClass)
+                                setValue.invoke(target, module)
+                                break // If successful, stop trying other set methods
+                            } catch (e: Exception) {
+                                // Try next set method
+                            }
+                        }
+                        break // If we found a module, stop trying other get methods
+                    }
+                } catch (e: Exception) {
+                    // Try next get method
+                }
+            }
+        }
+        
+        private fun getProgramParameters(configuration: RunConfiguration): String? {
             return try {
                 val method = configuration.javaClass.getMethod("getProgramParameters")
                 method.invoke(configuration) as String?
@@ -138,10 +243,10 @@ class RunWithFilePathAction : AnAction() {
             }
         }
         
-        private fun restoreProgramParameters(configuration: RunConfiguration, originalParams: String?) {
+        private fun setProgramParameters(configuration: RunConfiguration, params: String) {
             try {
                 val setMethod = configuration.javaClass.getMethod("setProgramParameters", String::class.java)
-                setMethod.invoke(configuration, originalParams ?: "")
+                setMethod.invoke(configuration, params)
             } catch (e: Exception) {
                 // Try alternative approach
                 try {
@@ -149,60 +254,34 @@ class RunWithFilePathAction : AnAction() {
                     val options = optionsMethod.invoke(configuration)
                     val programParamsField = options.javaClass.getDeclaredField("programParameters")
                     programParamsField.isAccessible = true
-                    programParamsField.set(options, originalParams ?: "")
+                    programParamsField.set(options, params)
                 } catch (e2: Exception) {
-                    // Unable to restore, but that's okay for temporary modification
+                    // Unable to set parameters
+                    throw RuntimeException("Unable to set program parameters", e2)
                 }
             }
         }
         
         private fun addProgramArgument(configuration: RunConfiguration, argument: String): Boolean {
-            // Handle different configuration types
-            
-            // Try common application configuration types
             try {
-                // For Application configurations (Java, Kotlin, etc.)
-                val method = configuration.javaClass.getMethod("getProgramParameters")
-                val currentParams = method.invoke(configuration) as String?
+                // Get current parameters
+                val currentParams = getProgramParameters(configuration)
                 
+                // Add the new argument
                 val newParams = if (currentParams.isNullOrEmpty()) {
                     "\"$argument\""
                 } else {
                     "$currentParams \"$argument\""
                 }
                 
-                val setMethod = configuration.javaClass.getMethod("setProgramParameters", String::class.java)
-                setMethod.invoke(configuration, newParams)
+                // Set the new parameters
+                setProgramParameters(configuration, newParams)
                 return true
+                
             } catch (e: Exception) {
-                // This configuration type doesn't support program parameters in this way
+                // If we can't set parameters, this configuration type is not supported
+                return false
             }
-            
-            // Try for other configuration types that might have different parameter methods
-            try {
-                // Some configurations might use "getOptions" or similar
-                val optionsMethod = configuration.javaClass.getMethod("getOptions")
-                val options = optionsMethod.invoke(configuration)
-                
-                // Try to find a program parameters field in the options
-                val programParamsField = options.javaClass.getDeclaredField("programParameters")
-                programParamsField.isAccessible = true
-                val currentParams = programParamsField.get(options) as String?
-                
-                val newParams = if (currentParams.isNullOrEmpty()) {
-                    "\"$argument\""
-                } else {
-                    "$currentParams \"$argument\""
-                }
-                
-                programParamsField.set(options, newParams)
-                return true
-            } catch (e: Exception) {
-                // This approach also didn't work
-            }
-            
-            // If none of the above work, this configuration type is not supported
-            return false
         }
     }
 } 
