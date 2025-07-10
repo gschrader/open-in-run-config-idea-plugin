@@ -51,8 +51,8 @@ class RunWithFilePathAction : AnAction() {
         val project = e.project
         val virtualFile = e.getData(CommonDataKeys.VIRTUAL_FILE)
         
-        // Enable action only if we have a project and a selected file
-        e.presentation.isEnabledAndVisible = project != null && virtualFile != null && !virtualFile.isDirectory
+        // Enable action only if we have a project
+        e.presentation.isEnabledAndVisible = project != null && virtualFile != null
     }
     
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
