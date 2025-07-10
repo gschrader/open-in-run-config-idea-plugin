@@ -10,7 +10,7 @@
 The **Open in Run Config** plugin allows you to quickly run any Java application configuration with a selected file as a program argument. It's essentially a productivity tool that eliminates the need to manually edit run configurations when you want to pass a file path to your application.
 <!-- Plugin description end -->
 
-![demo][file:demo.gif]
+![demo](./.github/readme/demo.gif)
 
 ## What It Does
 
