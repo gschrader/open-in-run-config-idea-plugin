@@ -1,6 +1,7 @@
 package com.github.gschrader.openinrunconfig.actions
 
 import com.github.gschrader.openinrunconfig.MyBundle
+import com.intellij.execution.CommonProgramRunConfigurationParameters
 import com.intellij.execution.ProgramRunnerUtil
 import com.intellij.execution.RunManager
 import com.intellij.execution.application.ApplicationConfiguration
@@ -27,7 +28,7 @@ class RunWithFilePathAction : AnAction() {
         val runManager = RunManager.getInstance(project)
         val allSettings = runManager.allSettings
         val configurations = allSettings
-            .filter { it.configuration.type.id == "Application" && !it.isTemporary }
+            .filter { (it.configuration.type.id == "Application" || it.configuration.type.id == "JetRunConfigurationType") && !it.isTemporary }
             .map { it.configuration }
         
         if (configurations.isEmpty()) {
@@ -142,9 +143,9 @@ class RunWithFilePathAction : AnAction() {
                 target.configurationModule.module = source.configurationModule.module
             }
         }
-        
+
         private fun addProgramArgument(configuration: RunConfiguration, argument: String): Boolean {
-            if (configuration is ApplicationConfiguration) {
+            if (configuration is CommonProgramRunConfigurationParameters) {
                 val currentParams = configuration.programParameters
                 val newParams = if (currentParams.isNullOrEmpty()) {
                     "\"$argument\""
