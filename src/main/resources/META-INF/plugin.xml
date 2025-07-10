@@ -17,8 +17,27 @@
         <action id="RunWithFilePathAction" 
                 class="com.github.gschrader.openinrunconfigideaplugin.actions.RunWithFilePathAction"
                 text="Run Configuration with File Path"
-                description="Run a configuration with the selected file path as a program argument">
-            <add-to-group group-id="ProjectViewPopupMenu" anchor="after" relative-to-action="OpenInTerminal"/>
+                description="Run with the selected file path as program argument">
+            
+            <!-- Project View -->
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            
+            <!-- Find usages window -->
+            <add-to-group group-id="UsageView.Popup" anchor="after" relative-to-action="ReplaceInPath"/>
+            <add-to-group group-id="UsageView.Toolbar" anchor="last"/>
+            
+            <!-- Editor content area -->
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            
+            <!-- Navigation bar -->
+            <add-to-group group-id="NavBarPopupMenu" anchor="last"/>
+            
+            <!-- Favorites -->
+            <add-to-group group-id="FavoritesPopupMenu" anchor="last"/>
+            
+            <!-- Editor tabs -->
+            <add-to-group group-id="EditorTabPopup" anchor="last"/>
+
         </action>
     </actions>
 </idea-plugin>
