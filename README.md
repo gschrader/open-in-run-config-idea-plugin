@@ -4,48 +4,32 @@
 [![Version](https://img.shields.io/jetbrains/plugin/v/27881.svg)](https://plugins.jetbrains.com/plugin/27881)
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/27881.svg)](https://plugins.jetbrains.com/plugin/27881)
 
-## Template ToDo list
-- [x] Create a new [IntelliJ Platform Plugin Template][template] project.
-- [ ] Get familiar with the [template documentation][template].
-- [ ] Adjust the [pluginGroup](./gradle.properties) and [pluginName](./gradle.properties), as well as the [id](./src/main/resources/META-INF/plugin.xml) and [sources package](./src/main/kotlin).
-- [ ] Adjust the plugin description in `README` (see [Tips][docs:plugin-description])
-- [ ] Review the [Legal Agreements](https://plugins.jetbrains.com/docs/marketplace/legal-agreements.html?from=IJPluginTemplate).
-- [ ] [Publish a plugin manually](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginTemplate) for the first time.
-- [ ] Set the `MARKETPLACE_ID` in the above README badges. You can obtain it once the plugin is published to JetBrains Marketplace.
-- [ ] Set the [Plugin Signing](https://plugins.jetbrains.com/docs/intellij/plugin-signing.html?from=IJPluginTemplate) related [secrets](https://github.com/JetBrains/intellij-platform-plugin-template#environment-variables).
-- [ ] Set the [Deployment Token](https://plugins.jetbrains.com/docs/marketplace/plugin-upload.html?from=IJPluginTemplate).
-- [ ] Click the <kbd>Watch</kbd> button on the top of the [IntelliJ Platform Plugin Template][template] to be notified about releases containing new features and fixes.
+## Plugin Overview
 
-<!-- Plugin description -->
-This Fancy IntelliJ Platform Plugin is going to be your implementation of the brilliant ideas that you have.
+The **Open in Run Config** plugin allows you to quickly run any Java application configuration with a selected file as a program argument. It's essentially a productivity tool that eliminates the need to manually edit run configurations when you want to pass a file path to your application.
 
-This specific section is a source for the [plugin.xml](/src/main/resources/META-INF/plugin.xml) file which will be extracted by the [Gradle](/build.gradle.kts) during the build process.
+## What It Does
 
-To keep everything working, do not remove `<!-- ... -->` sections. 
-<!-- Plugin description end -->
+1. **Context Menu Integration**: Adds a "Project Application" action to the context menu when you right-click on a file in the Project view or other file browsers in IntelliJ IDEA.
 
-## Installation
+2. **Configuration Selection**: When triggered, it shows a popup list of all available Java Application run configurations in your project.
 
-- Using the IDE built-in plugin system:
-  
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > <kbd>Search for "open-in-run-config-idea-plugin"</kbd> >
-  <kbd>Install</kbd>
-  
-- Using JetBrains Marketplace:
+3. **Automatic File Path Injection**: Once you select a run configuration, it:
+  - Creates a temporary copy of the selected configuration
+  - Automatically adds the selected file's path as a program argument
+  - Runs the configuration immediately
 
-  Go to [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID) and install it by clicking the <kbd>Install to ...</kbd> button in case your IDE is running.
+4. **Smart Handling**:
+  - Only works with Java Application configurations (not other types like JUnit, etc.)
+  - Preserves all original configuration settings (working directory, environment variables, etc.)
+  - Creates temporary configurations that don't clutter your permanent run configurations
+  - Handles both cases where the configuration already has program arguments and where it doesn't
 
-  You can also download the [latest release](https://plugins.jetbrains.com/plugin/MARKETPLACE_ID/versions) from JetBrains Marketplace and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
+## Use Cases
 
-- Manually:
+This plugin is particularly useful when you have applications that:
+- Process files (like parsers, converters, analyzers)
+- Need file paths as command-line arguments
+- Are frequently run with different input files
 
-  Download the [latest release](https://github.com/gschrader/open-in-run-config-idea-plugin/releases/latest) and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
-
-
----
-Plugin based on the [IntelliJ Platform Plugin Template][template].
-
-[template]: https://github.com/JetBrains/intellij-platform-plugin-template
-[docs:plugin-description]: https://plugins.jetbrains.com/docs/intellij/plugin-user-experience.html#plugin-description-and-presentation
+Instead of manually editing run configurations each time, you can simply right-click on any file and run your application with that file as input.
