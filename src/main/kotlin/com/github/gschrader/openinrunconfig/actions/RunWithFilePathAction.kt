@@ -1,4 +1,4 @@
-package com.github.gschrader.openinrunconfigideaplugin.actions
+package com.github.gschrader.openinrunconfig.actions
 
 import com.intellij.execution.ProgramRunnerUtil
 import com.intellij.execution.RunManager
@@ -14,7 +14,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.vfs.VirtualFile
-import com.github.gschrader.openinrunconfigideaplugin.MyBundle
+import com.github.gschrader.openinrunconfig.MyBundle
 import javax.swing.Icon
 import org.jdom.Element
 
@@ -36,7 +36,7 @@ class RunWithFilePathAction : AnAction() {
             Messages.showInfoMessage(
                 project, 
                 MyBundle.message("noConfigurationsAvailable"),
-                MyBundle.message("runWithFilePath.default")
+                MyBundle.message("runWithFilePath")
             )
             return
         }
@@ -54,13 +54,6 @@ class RunWithFilePathAction : AnAction() {
         
         // Enable action only if we have a project and a selected file
         e.presentation.isEnabledAndVisible = project != null && virtualFile != null && !virtualFile.isDirectory
-        
-        // Update the action text to show the file name
-        if (virtualFile != null) {
-            e.presentation.text = MyBundle.message("runWithFilePath", virtualFile.name)
-        } else {
-            e.presentation.text = MyBundle.message("runWithFilePath.default")
-        }
     }
     
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
@@ -91,7 +84,7 @@ class RunWithFilePathAction : AnAction() {
                     Messages.showErrorDialog(
                         project,
                         MyBundle.message("configurationNotSupported", configuration.name),
-                        MyBundle.message("runWithFilePath.default")
+                        MyBundle.message("runWithFilePath")
                     )
                     return
                 }
@@ -114,7 +107,7 @@ class RunWithFilePathAction : AnAction() {
                     Messages.showWarningDialog(
                         project,
                         MyBundle.message("configurationNotSupported", configuration.name),
-                        MyBundle.message("runWithFilePath.default")
+                        MyBundle.message("runWithFilePath")
                     )
                     return
                 }
@@ -136,7 +129,7 @@ class RunWithFilePathAction : AnAction() {
                 Messages.showErrorDialog(
                     project,
                     MyBundle.message("executionError", e.message ?: "Unknown error"),
-                    MyBundle.message("runWithFilePath.default")
+                    MyBundle.message("runWithFilePath")
                 )
             }
         }

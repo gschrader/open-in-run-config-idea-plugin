@@ -1,6 +1,6 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.github.gschrader.openinrunconfigideaplugin</id>
+    <id>com.github.gschrader.openinrunconfig</id>
     <name>open-in-run-config-idea-plugin</name>
     <vendor>gschrader</vendor>
 
@@ -8,36 +8,14 @@
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
-    <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.gschrader.openinrunconfigideaplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.gschrader.openinrunconfigideaplugin.startup.MyProjectActivity" />
-    </extensions>
-    
     <actions>
         <action id="RunWithFilePathAction" 
-                class="com.github.gschrader.openinrunconfigideaplugin.actions.RunWithFilePathAction"
-                text="Run Configuration with File Path"
+                class="com.github.gschrader.openinrunconfig.actions.RunWithFilePathAction"
+                text="Run Project Application with File Path"
                 description="Run with the selected file path as program argument">
             
-            <!-- Project View -->
-            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
-            
-            <!-- Find usages window -->
-            <add-to-group group-id="UsageView.Popup" anchor="after" relative-to-action="ReplaceInPath"/>
             <add-to-group group-id="UsageView.Toolbar" anchor="last"/>
-            
-            <!-- Editor content area -->
-            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-            
-            <!-- Navigation bar -->
-            <add-to-group group-id="NavBarPopupMenu" anchor="last"/>
-            
-            <!-- Favorites -->
-            <add-to-group group-id="FavoritesPopupMenu" anchor="last"/>
-            
-            <!-- Editor tabs -->
-            <add-to-group group-id="EditorTabPopup" anchor="last"/>
-
+            <add-to-group group-id="RevealGroup" anchor="last"/>
         </action>
     </actions>
 </idea-plugin>

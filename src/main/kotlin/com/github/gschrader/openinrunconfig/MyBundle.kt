@@ -1,4 +1,4 @@
-package com.github.gschrader.openinrunconfigideaplugin
+package com.github.gschrader.openinrunconfig
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.NonNls
