@@ -25,12 +25,10 @@ class RunWithFilePathAction : AnAction() {
         val virtualFile = e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
         
         val runManager = RunManager.getInstance(project)
-        val allConfigurations = runManager.allConfigurationsList
-        
-        // Filter to only show Application configurations
-        val configurations = allConfigurations.filter { configuration ->
-            configuration.type.id == "Application"
-        }
+        val allSettings = runManager.allSettings
+        val configurations = allSettings
+            .filter { it.configuration.type.id == "Application" && !it.isTemporary }
+            .map { it.configuration }
         
         if (configurations.isEmpty()) {
             Messages.showInfoMessage(
