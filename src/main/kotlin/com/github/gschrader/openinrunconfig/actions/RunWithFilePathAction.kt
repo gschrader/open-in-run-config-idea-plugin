@@ -1,7 +1,9 @@
 package com.github.gschrader.openinrunconfig.actions
 
+import com.github.gschrader.openinrunconfig.MyBundle
 import com.intellij.execution.ProgramRunnerUtil
 import com.intellij.execution.RunManager
+import com.intellij.execution.application.ApplicationConfiguration
 import com.intellij.execution.configurations.RunConfiguration
 import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -14,9 +16,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.vfs.VirtualFile
-import com.github.gschrader.openinrunconfig.MyBundle
 import javax.swing.Icon
-import org.jdom.Element
 
 class RunWithFilePathAction : AnAction() {
 
@@ -133,152 +133,28 @@ class RunWithFilePathAction : AnAction() {
         }
         
         private fun copyConfigurationSettings(source: RunConfiguration, target: RunConfiguration) {
-            try {
-                // Use the configuration's built-in serialization to copy all settings
-                val element = Element("configuration")
-                source.writeExternal(element)
-                target.readExternal(element)
-                
-                // The above copies ALL settings including main class, module, working directory, etc.
-                // This is the most reliable way to ensure complete configuration transfer
-                
-            } catch (e: Exception) {
-                // If serialization fails, fall back to manual copying
-                try {
-                    copySettingsManually(source, target)
-                } catch (e2: Exception) {
-                    // If all copying fails, the target will use default settings
-                    // This is acceptable for our use case
-                }
-            }
-        }
-        
-        private fun copySettingsManually(source: RunConfiguration, target: RunConfiguration) {
-            // Copy program parameters first
-            try {
-                val sourceParams = getProgramParameters(source)
-                setProgramParameters(target, sourceParams ?: "")
-            } catch (e: Exception) {
-                // Program parameters not available or copy failed, continue
-            }
-            
-            // Try various common configuration methods
-            val methodPairs = listOf(
-                "getWorkingDirectory" to "setWorkingDirectory",
-                "getMainClass" to "setMainClass", 
-                "getRunClass" to "setRunClass",
-                "getMainClassName" to "setMainClassName",
-                "getClassName" to "setClassName"
-            )
-            
-            for ((getMethod, setMethod) in methodPairs) {
-                try {
-                    val getValue = source.javaClass.getMethod(getMethod)
-                    val value = getValue.invoke(source) as String?
-                    if (value != null && value.isNotEmpty()) {
-                        val setValue = target.javaClass.getMethod(setMethod, String::class.java)
-                        setValue.invoke(target, value)
-                    }
-                } catch (e: Exception) {
-                    // Method not available or copy failed, continue
-                }
-            }
-            
-            // Try to copy environment variables
-            try {
-                val envVarsMethod = source.javaClass.getMethod("getEnvs")
-                val envVars = envVarsMethod.invoke(source) as Map<String, String>?
-                if (envVars != null) {
-                    val setEnvVarsMethod = target.javaClass.getMethod("setEnvs", Map::class.java)
-                    setEnvVarsMethod.invoke(target, envVars)
-                }
-            } catch (e: Exception) {
-                // Environment variables not available or copy failed, continue
-            }
-            
-            // Try to copy module using various possible methods
-            val moduleGetMethods = listOf("getModule", "getConfigurationModule")
-            val moduleSetMethods = listOf("setModule", "setConfigurationModule")
-            
-            for (getMethod in moduleGetMethods) {
-                try {
-                    val getValue = source.javaClass.getMethod(getMethod)
-                    val module = getValue.invoke(source)
-                    if (module != null) {
-                        for (setMethod in moduleSetMethods) {
-                            try {
-                                val setValue = target.javaClass.getMethod(setMethod, module.javaClass)
-                                setValue.invoke(target, module)
-                                break // If successful, stop trying other set methods
-                            } catch (e: Exception) {
-                                // Try next set method
-                            }
-                        }
-                        break // If we found a module, stop trying other get methods
-                    }
-                } catch (e: Exception) {
-                    // Try next get method
-                }
-            }
-        }
-        
-        private fun getProgramParameters(configuration: RunConfiguration): String? {
-            return try {
-                val method = configuration.javaClass.getMethod("getProgramParameters")
-                method.invoke(configuration) as String?
-            } catch (e: Exception) {
-                // Try alternative approach
-                try {
-                    val optionsMethod = configuration.javaClass.getMethod("getOptions")
-                    val options = optionsMethod.invoke(configuration)
-                    val programParamsField = options.javaClass.getDeclaredField("programParameters")
-                    programParamsField.isAccessible = true
-                    programParamsField.get(options) as String?
-                } catch (e2: Exception) {
-                    null
-                }
-            }
-        }
-        
-        private fun setProgramParameters(configuration: RunConfiguration, params: String) {
-            try {
-                val setMethod = configuration.javaClass.getMethod("setProgramParameters", String::class.java)
-                setMethod.invoke(configuration, params)
-            } catch (e: Exception) {
-                // Try alternative approach
-                try {
-                    val optionsMethod = configuration.javaClass.getMethod("getOptions")
-                    val options = optionsMethod.invoke(configuration)
-                    val programParamsField = options.javaClass.getDeclaredField("programParameters")
-                    programParamsField.isAccessible = true
-                    programParamsField.set(options, params)
-                } catch (e2: Exception) {
-                    // Unable to set parameters
-                    throw RuntimeException("Unable to set program parameters", e2)
-                }
+            if (source is ApplicationConfiguration && target is ApplicationConfiguration) {
+                target.programParameters = source.programParameters
+                target.workingDirectory = source.workingDirectory
+                target.mainClassName = source.mainClassName
+                target.envs = HashMap(source.envs)
+                target.isPassParentEnvs = source.isPassParentEnvs
+                target.configurationModule.module = source.configurationModule.module
             }
         }
         
         private fun addProgramArgument(configuration: RunConfiguration, argument: String): Boolean {
-            try {
-                // Get current parameters
-                val currentParams = getProgramParameters(configuration)
-                
-                // Add the new argument
+            if (configuration is ApplicationConfiguration) {
+                val currentParams = configuration.programParameters
                 val newParams = if (currentParams.isNullOrEmpty()) {
                     "\"$argument\""
                 } else {
                     "$currentParams \"$argument\""
                 }
-                
-                // Set the new parameters
-                setProgramParameters(configuration, newParams)
+                configuration.programParameters = newParams
                 return true
-                
-            } catch (e: Exception) {
-                // If we can't set parameters, this configuration type is not supported
-                return false
             }
+            return false
         }
     }
 } 

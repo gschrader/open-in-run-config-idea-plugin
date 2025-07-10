@@ -5,16 +5,17 @@
     <vendor>gschrader</vendor>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <actions>
         <action id="RunWithFilePathAction" 
                 class="com.github.gschrader.openinrunconfig.actions.RunWithFilePathAction"
-                text="Run Project Application with File Path"
+                text="Project Application"
                 description="Run with the selected file path as program argument">
             
-            <add-to-group group-id="UsageView.Toolbar" anchor="last"/>
+            <add-to-group group-id="UsageView.Popup" anchor="last"/>
             <add-to-group group-id="RevealGroup" anchor="last"/>
         </action>
     </actions>
